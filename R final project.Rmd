@@ -1,0 +1,94 @@
+# Jeff Nieman  R Final Project
+
+# Begin by choosing an interesting data set (and what is more interesting than chocolate cake?)
+
+cakefile <- "https://raw.githubusercontent.com/vincentarelbundock/Rdatasets/master/csv/lme4/cake.csv"
+cake <- read.table (file = cakefile, header = TRUE, sep=',') 
+head (cake,4)
+# Perform some basic transformations.  Transformation #1:  Begin by reducing the number of columns, then test.
+
+caketest <- cake[c(1:5)]
+head (caketest,4)
+
+# Transformation #2: Rename the column names, then test.
+
+colnames(caketest) <- c("Test_Number", "Repeat", "Recipe_Creator", "Oven_Temperature", "Break_Angle")
+head (caketest,4)
+
+# Transformation #3: Add column that calculates temperature in Celsius, then test
+
+caketest <- transform(caketest, Celsius_Temperature = round((Oven_Temperature - 32) * 5/9))
+head (caketest,4)
+
+# Transformation #4: Add country column, then test
+cakecountry <- read.table ("file:///C:/Users/jenieman/Documents/GitHub/R-final/cake countries.csv", header = TRUE, sep=',')
+cakenew <- cbind(caketest, cakecountry)
+head (cakenew,4)
+
+# Transformation #5:  Filter to only  show rows where the temperature in Celsius is greater than 100, then test
+
+cakefilter <- cakenew[cakenew$Celsius_Temperature > 100,]
+head (cakefilter,4)
+
+# Transformation #6:  change abbreviations to names for recipe creator, then test
+
+cakenew$Recipe_Creator <- gsub("A", "Anna", cakenew$Recipe_Creator)
+cakenew$Recipe_Creator <- gsub("B", "Betsy", cakenew$Recipe_Creator)
+cakenew$Recipe_Creator <- gsub("C", "Carrie",cakenew$Recipe_Creator)
+head (cakenew,10)
+
+# Key Question to investigate:  What causes the larger break angles?
+# Create basic summary statistics.  
+
+# summary #1: What is summary of temperature?
+
+ot <- summary(cakenew$Oven_Temperature)
+print(ot)
+
+# Summary #2: What is summary of angles?
+
+ba <- summary(cakenew$Break_Angle)
+print(ba)
+
+# Run some graphical analysis
+
+#  Test #1: Look at break angle histogram
+hist(cakenew$Break_Angle)
+
+# Observation #1: Mean break angle is 32.12 degrees and distribution is fairly normal but does favor the high end a little (max is 63 degrees)
+
+# Test #2:  Look at distribution of angles via a scatter plot looking at relationship between temperature and break angle
+
+plot(Break_Angle~Oven_Temperature, data=cakenew)
+cor(cakenew$Break_Angle, cakenew$Oven_Temperature)
+
+# Observation #2: the 7 highest angles are all from the 2 highest temperatures, although the highest temperature does not guarantee the highest break angle.  The correlation value of a smaller positive (0.329) shows a slight but not overly large correlation.  Need to investigate other variables as well.
+
+#Test #3 - Create a layered scatter plot testing recipe creator
+require(ggplot2)
+g<-ggplot(cakenew, aes(x=Break_Angle, y=Oven_Temperature))
+g+geom_point(aes(color=Recipe_Creator))
+
+# Observation #3: At first glance it appears that Carrie's recipe may contribute to a greater break angle, as Carrie has two of the highest angles. 
+
+# Test #4: Plot break angle against recipe creators.
+
+plot(Break_Angle~Recipe_Creator, data=caketest)
+
+# Observation #4:  Carrie has two of the highest angles, but overall her mean is the same as Betsy.  Anna's recipe has a higher actual mean.
+
+# Test #5:  Create a layered scatter plot testing repeat test
+
+g+geom_point(aes(color=Repeat))
+
+# Observation #5:  The later tests have the smaller break angles.
+
+# Test #6:  Look at country influence.
+
+require(rworldmap)
+cakeworld <- joinCountryData2Map( cakenew, joinCode = "ISO3", nameJoinColumn = "Country")
+mapCountryData(cakeworld, nameColumnToPlot="Break_Angle")
+
+# Observation #6:  Russia and India have the highest average break angles.
+
+# Final conclusions:  To get the highest break angle, it would seem to use an earlier test done in Russia or India at the highest temperature.
